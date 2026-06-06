@@ -576,8 +576,8 @@ function Overlay({ onClose, wide, children }) {
   );
 }
 
-function AddModal({ onAdd, onClose }) {
-  const [type,  setType]  = useState('concept');
+function AddModal({ initType = 'concept', onAdd, onClose }) {
+  const [type,  setType]  = useState(initType);
   const [label, setLabel] = useState('');
   const [desc,  setDesc]  = useState('');
   const inputRef = useRef(null);
@@ -809,6 +809,7 @@ function App() {
   const [liveCount, setLiveCount] = useState(() => store.graphs['root']?.nodes?.length || 0);
   const [canvasKey,    setCanvasKey]    = useState(0);
   const [addOpen,      setAddOpen]      = useState(false);
+  const [addInitType,  setAddInitType]  = useState('concept');
   const [editNode,     setEditNode]     = useState(null);
   const [viewNode,     setViewNode]     = useState(null);
   const [exportMd,     setExportMd]     = useState(null);
@@ -830,10 +831,20 @@ function App() {
   }, [curId, store.graphs]);
 
   useEffect(() => {
-    const h = e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); doSave(); } };
+    const h = e => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === 's') { e.preventDefault(); doSave(); }
+      if (mod && e.key === 'n') { e.preventDefault(); openAdd('concept'); }
+      if (mod && e.key === 'g') { e.preventDefault(); openAdd('subgraph'); }
+    };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   });
+
+  const openAdd = useCallback((type = 'concept') => {
+    setAddInitType(type);
+    setAddOpen(true);
+  }, []);
 
   const capture = useCallback((base = store, id = curId) => {
     if (!flowRef.current) return base;
@@ -991,7 +1002,7 @@ function App() {
             </nav>
           </div>
           <div className="tb-right">
-            <button className="btn ghost" onClick={() => setAddOpen(true)}>+ Add Node</button>
+            <button className="btn ghost" onClick={() => openAdd('concept')} title="Add Node (Ctrl+N)">+ Add Node</button>
             <button className="btn ghost" onClick={doExport}>Export</button>
             <button className="btn ghost" onClick={doClear}>Clear</button>
             <button className="btn ghost" onClick={() => setLoadOpen(true)}>Load</button>
@@ -1011,7 +1022,7 @@ function App() {
         </main>
       </div>
 
-      {addOpen      && <AddModal     onAdd={doAdd}               onClose={() => setAddOpen(false)} />}
+      {addOpen      && <AddModal     initType={addInitType} onAdd={doAdd} onClose={() => setAddOpen(false)} />}
       {editNode     && <EditModal    node={editNode} onSave={doEditSave} onClose={() => setEditNode(null)} />}
       {viewNode     && <ViewModal    node={viewNode}              onClose={() => setViewNode(null)} />}
       {loadOpen     && <LoadModal    onLoad={doLoad}              onClose={() => setLoadOpen(false)} />}
